@@ -126,16 +126,87 @@
 
         /* ========== フォーム要素 ========== */
         .form-group {
-            padding: 12px 16px;
+            padding: 10px 16px;
             border-bottom: 1px solid #f0f0f0;
         }
 
         .form-group label {
             display: block;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #333;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
+        }
+
+        /* 2列フォームレイアウト */
+        .form-group-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        .form-group-row .form-group {
+            border-bottom: none;
+            border-right: 1px solid #f0f0f0;
+            padding: 10px 12px;
+        }
+
+        .form-group-row .form-group:nth-child(2n) {
+            border-right: none;
+        }
+
+        .form-group-row .form-group:nth-child(n+3) {
+            border-top: 1px solid #f0f0f0;
+        }
+
+        /* 全幅フォーム（備考など） */
+        .form-group-full {
+            grid-column: 1 / -1;
+            border: none;
+            border-top: 1px solid #f0f0f0;
+            padding: 10px 16px;
+        }
+
+        /* 棚卸モーダル専用：項目の列幅を狭くしてコンパクトに表示 */
+        #stocktakeModal .modal-body {
+            padding: 12px 12px;
+        }
+
+        #stocktakeModal .form-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 6px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        #stocktakeModal .form-group label {
+            flex: 0 0 34%;
+            font-size: 13px;
+            margin-bottom: 0;
+        }
+
+        #stocktakeModal .form-group input {
+            flex: 1 1 66%;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        /* キーボード（テンキー）表示時にモーダルが押し上げられないよう固定表示 */
+        body.keyboard-open-stocktake #stocktakeModal {
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        body.keyboard-open-stocktake #stocktakeModal .modal-content {
+            position: fixed !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            top: 10vh !important;
+            margin: 0 auto !important;
+            width: 92% !important;
+            max-height: 65vh !important;
+            overflow: auto !important;
         }
 
         input[type="text"],
@@ -332,7 +403,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            /* 背景の半透明を無くして、カレンダーが暗くならないようにする */
+            background: transparent;
             display: none;
             align-items: flex-end;
             z-index: 1000;
@@ -413,6 +485,21 @@
             background: white;
             flex-shrink: 0;
             z-index: 10;
+        }
+
+        /* 棚卸モーダルを画面上部5%に固定表示 */
+        #stocktakeModal {
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        #stocktakeModal .modal-content {
+            transform: translateY(0) !important;
+            margin: 25vh auto 0 auto;
+            width: 92%;
+            max-height: 85vh;
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.18);
         }
 
         /* ========== 検索・フィルタ ========== */
@@ -555,10 +642,16 @@
         <div class="main-content">
             <!-- 在庫操作画面 -->
             <div id="inventory" class="content-area active">
-                <div class="search-box">
-                    <input type="text" id="inventorySearch" placeholder="商品名を検索...">
+                <div style="position: relative;">
+                    <div style="display: flex; gap: 8px; padding: 12px 16px; background: white; border-bottom: 1px solid #f0f0f0; align-items: stretch;">
+                        <input type="text" id="inventorySearch" placeholder="商品名を検索..." style="flex: 1; padding: 10px 12px; font-size: 16px; border: 1px solid #d0d0d0; border-radius: 6px;">
+                        <button id="categoryToggleBtn" class="btn btn-primary" style="flex: 0 0 auto; white-space: nowrap;">カテゴリー</button>
+                    </div>
+                    <div class="filter-chips" id="categoryFilter" style="display: none;"></div>
                 </div>
-                <div class="filter-chips" id="categoryFilter"></div>
+                <div class="filter-chips" id="stockFilter">
+                    <button class="chip" id="lowStockBtn" onclick="toggleLowStockFilter()">在庫不足のみ</button>
+                </div>
                 <div id="inventoryList" style="flex: 1; overflow-y: auto;"></div>
             </div>
 
@@ -591,8 +684,13 @@
 
             <!-- 交換周期カレンダー画面 -->
             <div id="calendar" class="content-area">
-                <div id="calendarContainer" style="padding: 12px 16px;"></div>
-                <div id="scheduleList" style="flex: 1; overflow-y: auto; padding: 12px 16px;"></div>
+                <div style="display: flex; gap: 12px; padding: 12px 16px; background: white; border-bottom: 1px solid #f0f0f0; align-items: center;">
+                    <button id="prevMonthBtn" class="btn btn-secondary" style="flex: 0 0 auto; padding: 8px 12px;">◀ 前月</button>
+                    <div id="monthDisplay" style="flex: 1; text-align: center; font-weight: 600; font-size: 16px;"></div>
+                    <button id="nextMonthBtn" class="btn btn-secondary" style="flex: 0 0 auto; padding: 8px 12px;">次月 ▶</button>
+                </div>
+                <div id="calendarContainer" style="flex: 2; overflow-y: auto; padding: 12px 16px; border-bottom: 1px solid #f0f0f0;"></div>
+                <div id="scheduleList" style="flex: 1; overflow-y: auto; border-top: 1px solid #f0f0f0;"></div>
             </div>
 
             <!-- データ連携画面 -->
@@ -618,6 +716,9 @@
                     </div>
                     <div class="btn-group full">
                         <button class="btn btn-danger" id="restoreBtn">復元...</button>
+                    </div>
+                    <div class="btn-group full">
+                        <button class="btn btn-danger" id="initializeBtn" title="全てのデータを初期化します">初期化（全データ削除）</button>
                     </div>
                 </div>
             </div>
@@ -646,7 +747,7 @@
                 </div>
                 <div class="form-group">
                     <label>数量</label>
-                    <input type="number" id="opQuantity" placeholder="0" min="0" value="1">
+                    <input type="number" id="opQuantity" placeholder="0" min="0" value="1" inputmode="numeric" pattern="\d*">
                 </div>
                 <div id="reasonSection" class="form-group">
                     <label>使用理由</label>
@@ -654,6 +755,7 @@
                         <option value="">選択してください</option>
                         <option value="regular">定期交換</option>
                         <option value="unexpected">突発交換</option>
+                                            <option value="other">その他</option>
                     </select>
                 </div>
                 <div id="detailReasonSection" class="form-group hidden" style="display:none;">
@@ -665,6 +767,10 @@
                         <option value="worn">摩耗</option>
                         <option value="deteriorated">劣化</option>
                     </select>
+                </div>
+                <div id="otherCommentSection" class="form-group hidden" style="display:none;">
+                    <label>コメント</label>
+                    <textarea id="opOtherComment" placeholder="使用理由の詳細を入力してください..." style="min-height: 60px; resize: vertical;"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -696,7 +802,7 @@
                 </div>
                 <div class="form-group">
                     <label>数量</label>
-                    <input type="number" id="rcQuantity" placeholder="0" min="0" value="1">
+                    <input type="number" id="rcQuantity" placeholder="0" min="0" value="1" inputmode="numeric" pattern="\d*">
                 </div>
             </div>
             <div class="modal-footer">
@@ -724,11 +830,11 @@
                 </div>
                 <div class="form-group">
                     <label>発注数量</label>
-                    <input type="number" id="ordQuantity" placeholder="0" min="1" value="1">
+                    <input type="number" id="ordQuantity" placeholder="0" min="1" value="1" inputmode="numeric" pattern="\d*">
                 </div>
                 <div class="form-group">
                     <label>納入予定日（オプション）</label>
-                    <input type="date" id="ordExpectedDate">
+                    <input type="text" id="ordExpectedDate" placeholder="YYYY-MM-DD（任意）">
                 </div>
                 <div class="form-group">
                     <label>備考</label>
@@ -750,49 +856,51 @@
                 <button class="modal-close-btn" onclick="closeModal('productModal')">✕</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>商品コード <span style="color: #d32f2f;">*</span></label>
-                    <input type="text" id="prodCode" placeholder="例: PRD001">
-                </div>
-                <div class="form-group">
-                    <label>品名</label>
-                    <input type="text" id="prodName" placeholder="商品名">
-                </div>
-                <div class="form-group">
-                    <label>メーカー</label>
-                    <input type="text" id="prodMaker" placeholder="メーカー名">
-                </div>
-                <div class="form-group">
-                    <label>型式（品番）</label>
-                    <input type="text" id="prodModel" placeholder="型式 / 品番">
-                </div>
-                <div class="form-group">
-                    <label>カテゴリー</label>
-                    <input type="text" id="prodCategory" placeholder="カテゴリー名">
-                </div>
-                <div class="form-group">
-                    <label>最低在庫数</label>
-                    <input type="number" id="prodMinStock" min="0" value="1">
-                </div>
-                <div class="form-group">
-                    <label>現在庫数</label>
-                    <input type="number" id="prodCurrentStock" min="0" value="0">
-                </div>
-                <div class="form-group">
-                    <label>金額（オプション）</label>
-                    <input type="number" id="prodPrice" min="0" placeholder="0">
-                </div>
-                <div class="form-group">
-                    <label>リードタイム（日数）</label>
-                    <input type="number" id="prodLeadTime" min="0" placeholder="0">
-                </div>
-                <div class="form-group">
-                    <label>交換周期（日数）</label>
-                    <input type="number" id="prodCycleDays" min="0" placeholder="定期交換を行わない場合は未入力">
-                </div>
-                <div class="form-group">
-                    <label>備考</label>
-                    <textarea id="prodNote" placeholder="備考があれば記入..."></textarea>
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label>商品コード <span style="color: #d32f2f;">*</span></label>
+                        <input type="text" id="prodCode" placeholder="例: PRD001">
+                    </div>
+                    <div class="form-group">
+                        <label>品名</label>
+                        <input type="text" id="prodName" placeholder="商品名">
+                    </div>
+                    <div class="form-group">
+                        <label>メーカー</label>
+                        <input type="text" id="prodMaker" placeholder="メーカー名">
+                    </div>
+                    <div class="form-group">
+                        <label>型式（品番）</label>
+                        <input type="text" id="prodModel" placeholder="型式 / 品番">
+                    </div>
+                    <div class="form-group">
+                        <label>カテゴリー</label>
+                        <input type="text" id="prodCategory" placeholder="カテゴリー名">
+                    </div>
+                    <div class="form-group">
+                        <label>最低在庫数</label>
+                        <input type="number" id="prodMinStock" min="0" value="1" inputmode="numeric" pattern="\d*">
+                    </div>
+                    <div class="form-group">
+                        <label>現在庫数</label>
+                        <input type="number" id="prodCurrentStock" min="0" value="0" inputmode="numeric" pattern="\d*">
+                    </div>
+                    <div class="form-group">
+                        <label>金額（オプション）</label>
+                        <input type="number" id="prodPrice" min="0" placeholder="0" inputmode="numeric" pattern="\d*">
+                    </div>
+                    <div class="form-group">
+                        <label>リードタイム（日数）</label>
+                        <input type="number" id="prodLeadTime" min="0" placeholder="0" inputmode="numeric" pattern="\d*">
+                    </div>
+                    <div class="form-group">
+                        <label>交換周期（日数）</label>
+                        <input type="number" id="prodCycleDays" min="0" placeholder="定期交換を行わない場合は未入力" inputmode="numeric" pattern="\d*">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>備考</label>
+                        <textarea id="prodNote" placeholder="備考があれば記入..."></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -824,11 +932,11 @@
                 </div>
                 <div class="form-group">
                     <label>実在庫数</label>
-                    <input type="number" id="stActualStock" placeholder="0" min="0">
+                    <input type="number" id="stActualStock" placeholder="0" min="0" inputmode="numeric" pattern="\d*">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('stocktakeModal')">スキップ</button>
+                <button class="btn btn-secondary" onclick="skipStocktakeItem()">スキップ</button>
                 <button class="btn btn-primary" id="stConfirmBtn">次へ</button>
             </div>
         </div>
@@ -852,7 +960,7 @@
                 </div>
                 <div class="form-group">
                     <label>数量</label>
-                    <input type="number" id="ehQuantity" min="0">
+                    <input type="number" id="ehQuantity" min="0" inputmode="numeric" pattern="\d*">
                 </div>
             </div>
             <div class="modal-footer">
@@ -869,6 +977,20 @@
         // ========================================
         // グローバル状態管理
         // ========================================
+        // ローカルストレージ不可時の フォールバック（メモリキャッシュ）
+        let STORAGE_CACHE = {};
+        let STORAGE_AVAILABLE = true;
+        
+        // localStorage 利用可能か確認
+        try {
+            const test = '__test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+        } catch (e) {
+            STORAGE_AVAILABLE = false;
+            console.warn('localStorage is not available, using memory cache');
+        }
+        
         const STATE = {
             products: [],
             history: [],
@@ -878,11 +1000,14 @@
             currentScreen: 'inventory',
             currentFilter: {
                 category: null,
-                search: ''
+                search: '',
+                lowStockOnly: false
             },
             stocktakeMode: false,
             stocktakeIndex: 0,
-            stocktakeResults: []
+            stocktakeResults: [],
+            calendarYear: new Date().getFullYear(),
+            calendarMonth: new Date().getMonth()
         };
 
         // ========================================
@@ -893,7 +1018,8 @@
             HISTORY: 'inventory_history',
             ORDERS: 'inventory_orders',
             CATEGORIES: 'inventory_categories',
-            MAKERS: 'inventory_makers'
+            MAKERS: 'inventory_makers',
+            STOCKTAKE_PROGRESS: 'inventory_stocktake_progress'
         };
 
         // ========================================
@@ -915,8 +1041,14 @@
 
         function loadFromStorage(key, defaultValue) {
             try {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : defaultValue;
+                // localStorage が利用可能ならそこから、なければメモリキャッシュから取得
+                if (STORAGE_AVAILABLE) {
+                    const data = localStorage.getItem(key);
+                    if (data) return JSON.parse(data);
+                }
+                // フォールバック: メモリキャッシュから取得
+                if (STORAGE_CACHE[key]) return JSON.parse(STORAGE_CACHE[key]);
+                return defaultValue;
             } catch (e) {
                 console.error('Storage load error:', key, e);
                 return defaultValue;
@@ -925,10 +1057,22 @@
 
         function saveToStorage(key, data) {
             try {
-                localStorage.setItem(key, JSON.stringify(data));
+                const jsonData = JSON.stringify(data);
+                // localStorage が利用可能なら保存
+                if (STORAGE_AVAILABLE) {
+                    localStorage.setItem(key, jsonData);
+                } else {
+                    // フォールバック: メモリキャッシュに保存
+                    STORAGE_CACHE[key] = jsonData;
+                }
             } catch (e) {
                 console.error('Storage save error:', key, e);
-                alert('データ保存に失敗しました。ストレージ容量をご確認ください。');
+                // localStorage 容量不足時はメモリキャッシュに フォールバック
+                try {
+                    STORAGE_CACHE[key] = JSON.stringify(data);
+                } catch (e2) {
+                    alert('データ保存に失敗しました。ストレージ容量をご確認ください。');
+                }
             }
         }
 
@@ -950,12 +1094,24 @@
                 renderInventoryList();
             });
 
+            document.getElementById('categoryToggleBtn').addEventListener('click', () => {
+                const filterDiv = document.getElementById('categoryFilter');
+                const isVisible = filterDiv.style.display !== 'none';
+                if (isVisible) {
+                    filterDiv.style.display = 'none';
+                } else {
+                    filterDiv.style.display = 'flex';
+                    renderCategoryFilter();
+                }
+            });
+
             document.getElementById('categoryFilter').addEventListener('click', (e) => {
                 if (e.target.classList.contains('chip')) {
                     const cat = e.target.dataset.category;
                     document.querySelectorAll('#categoryFilter .chip').forEach(c => c.classList.remove('active'));
                     e.target.classList.add('active');
                     STATE.currentFilter.category = cat;
+                    document.getElementById('categoryFilter').style.display = 'none';
                     renderInventoryList();
                 }
             });
@@ -994,8 +1150,46 @@
             document.getElementById('opConfirmBtn').addEventListener('click', saveUseOperation);
             document.getElementById('rcConfirmBtn').addEventListener('click', saveReceiveOperation);
             document.getElementById('ordConfirmBtn').addEventListener('click', saveOrderRequest);
+
+                        // 使用理由の変更時にコメント欄や詳細理由欄の表示を制御
+                        document.getElementById('opReason').addEventListener('change', (e) => {
+                            const reason = e.target.value;
+                            const detailSection = document.getElementById('detailReasonSection');
+                            const commentSection = document.getElementById('otherCommentSection');
+
+                            if (reason === 'unexpected') {
+                                detailSection.style.display = 'block';
+                                commentSection.style.display = 'none';
+                                document.getElementById('opOtherComment').value = '';
+                            } else if (reason === 'other') {
+                                detailSection.style.display = 'none';
+                                commentSection.style.display = 'block';
+                                document.getElementById('opDetailReason').value = '';
+                            } else {
+                                detailSection.style.display = 'none';
+                                commentSection.style.display = 'none';
+                                document.getElementById('opDetailReason').value = '';
+                                document.getElementById('opOtherComment').value = '';
+                            }
+                        });
             document.getElementById('stConfirmBtn').addEventListener('click', saveStocktakeItem);
             document.getElementById('ehConfirmBtn').addEventListener('click', saveEditHistory);
+
+            // 棚卸モーダルの入力フォーカス時にテンキーで押し上げられる問題を防ぐ
+            const stInput = document.getElementById('stActualStock');
+            if (stInput) {
+                stInput.addEventListener('focus', () => {
+                    document.body.classList.add('keyboard-open-stocktake');
+                    // 少し遅延してスクロール位置を調整
+                    setTimeout(() => {
+                        const modal = document.querySelector('#stocktakeModal .modal-content');
+                        if (modal) modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+                stInput.addEventListener('blur', () => {
+                    document.body.classList.remove('keyboard-open-stocktake');
+                });
+            }
 
             // 使用理由の変更監視
             document.getElementById('opReason').addEventListener('change', (e) => {
@@ -1014,6 +1208,10 @@
             document.getElementById('exportHistoryBtn').addEventListener('click', () => exportData('history'));
             document.getElementById('backupBtn').addEventListener('click', backupAllData);
             document.getElementById('restoreBtn').addEventListener('click', restoreData);
+            document.getElementById('initializeBtn').addEventListener('click', () => {
+                if (!confirm('アプリの全データを初期化します。よろしいですか？\n（この操作は元に戻せません）')) return;
+                resetAllData();
+            });
 
             document.getElementById('csvFileInput').addEventListener('change', handleCsvImport);
 
@@ -1031,6 +1229,7 @@
         // 画面切り替え
         // ========================================
         function switchScreen(screenName) {
+            const prevScreen = STATE.currentScreen;
             // ナビゲーション更新
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -1056,14 +1255,91 @@
             } else if (screenName === 'calendar') {
                 renderCalendarScreen();
             }
+
+            // カレンダー画面以外ではカレンダー領域を明示的に非表示・クリアする
+            const calArea = document.getElementById('calendar');
+            const cal = document.getElementById('calendarContainer');
+            const sched = document.getElementById('scheduleList');
+            if (calArea) {
+                if (screenName === 'calendar') {
+                    calArea.style.display = 'flex';
+                    if (typeof renderCalendarScreen === 'function') renderCalendarScreen();
+                } else {
+                    // 完全に非表示にして中身をクリア
+                    calArea.style.display = 'none';
+                    if (cal) cal.innerHTML = '';
+                    if (sched) sched.innerHTML = '';
+                }
+            }
+        }
+
+        // 在庫不足フィルタの切り替え
+        function toggleLowStockFilter() {
+            STATE.currentFilter.lowStockOnly = !STATE.currentFilter.lowStockOnly;
+            const btn = document.getElementById('lowStockBtn');
+            if (STATE.currentFilter.lowStockOnly) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            renderInventoryList();
+        }
+
+        // カレンダーの前月・次月ボタン
+        document.getElementById('prevMonthBtn').addEventListener('click', () => {
+            STATE.calendarMonth--;
+            if (STATE.calendarMonth < 0) {
+                STATE.calendarMonth = 11;
+                STATE.calendarYear--;
+            }
+            renderCalendarScreen();
+        });
+
+        document.getElementById('nextMonthBtn').addEventListener('click', () => {
+            STATE.calendarMonth++;
+            if (STATE.calendarMonth > 11) {
+                STATE.calendarMonth = 0;
+                STATE.calendarYear++;
+            }
+            renderCalendarScreen();
+        });
+
+        // カテゴリーカラーパレット
+        const categoryColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#A8E6CF',
+            '#FFD3B6', '#FFAAA5', '#87CEEB', '#90EE90', '#FFB6C1'
+        ];
+
+        function getCategoryColor(category) {
+            if (!category) return '#CCCCCC';
+            const hash = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            return categoryColors[hash % categoryColors.length];
         }
 
         // ========================================
         // 在庫操作画面
         // ========================================
         function renderCategoryFilter() {
+            // 常に最新データから開始
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+            STATE.categories = loadFromStorage(STORAGE_KEYS.CATEGORIES, []);
+            
             const filterContainer = document.getElementById('categoryFilter');
             filterContainer.innerHTML = '';
+            filterContainer.style.flexDirection = 'column';
+            filterContainer.style.position = 'absolute';
+            filterContainer.style.top = 'calc(100% + 8px)';
+            filterContainer.style.left = '16px';
+            filterContainer.style.right = '16px';
+            filterContainer.style.backgroundColor = 'white';
+            filterContainer.style.border = '1px solid #d0d0d0';
+            filterContainer.style.borderRadius = '6px';
+            filterContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            filterContainer.style.zIndex = '1000';
+            filterContainer.style.maxHeight = '300px';
+            filterContainer.style.overflowY = 'auto';
+            filterContainer.style.width = 'auto';
 
             const categories = [...new Set(STATE.products.map(p => p.category))].filter(Boolean).sort();
 
@@ -1072,20 +1348,42 @@
                 chip.className = 'chip';
                 chip.textContent = cat;
                 chip.dataset.category = cat;
+                const catColor = getCategoryColor(cat);
+                chip.style.backgroundColor = catColor;
+                chip.style.color = 'white';
+                chip.style.borderColor = catColor;
+                chip.style.width = '100%';
+                chip.style.margin = '0';
+                chip.style.borderRadius = '0';
+                chip.style.padding = '12px';
+                chip.style.border = 'none';
+                chip.style.borderBottom = '1px solid #f0f0f0';
+                chip.style.textAlign = 'left';
+                if (STATE.currentFilter.category === cat) {
+                    chip.classList.add('active');
+                }
                 filterContainer.appendChild(chip);
             });
         }
 
         function renderInventoryList() {
+            // 常に最新データから開始
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+            STATE.history = loadFromStorage(STORAGE_KEYS.HISTORY, []);
+            STATE.orders = loadFromStorage(STORAGE_KEYS.ORDERS, []);
+            
             const listContainer = document.getElementById('inventoryList');
             const searchTerm = STATE.currentFilter.search.toLowerCase();
             const categoryFilter = STATE.currentFilter.category;
+            const lowStockOnly = STATE.currentFilter.lowStockOnly;
 
             let filtered = STATE.products.filter(p => {
                 const matchSearch = p.name.toLowerCase().includes(searchTerm) ||
                                    p.code.toLowerCase().includes(searchTerm);
                 const matchCategory = !categoryFilter || p.category === categoryFilter;
-                return matchSearch && matchCategory && !p.deleted;
+                const isLow = p.currentStock <= p.minStock;
+                const matchLowStock = !lowStockOnly || isLow;
+                return matchSearch && matchCategory && matchLowStock && !p.deleted;
             });
 
             if (filtered.length === 0) {
@@ -1110,6 +1408,7 @@
                     statusBadge = '<span class="stock-badge normal">正常</span>';
                 }
 
+                const categoryBadge = product.category ? `<span class="category-badge" style="background: ${getCategoryColor(product.category)}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">${escapeHtml(product.category)}</span>` : '-';
                 return `
                     <div class="list-item ${alertClass}" style="border-bottom: 1px solid #e0e0e0; padding: 12px 16px;">
                         <div class="list-item-header">
@@ -1117,7 +1416,7 @@
                             ${statusBadge}
                         </div>
                         <div class="list-item-text">コード: ${escapeHtml(product.code)}</div>
-                        <div class="list-item-text">カテゴリー: ${escapeHtml(product.category || '-')}</div>
+                        <div class="list-item-text">カテゴリー: ${categoryBadge}</div>
                         <div class="list-item-text">在庫: <strong>${product.currentStock}</strong> 個 (最低: ${product.minStock} 個)</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px;">
                             <button class="btn btn-small btn-primary" onclick="openOperationModal('use', '${product.code}')">使用</button>
@@ -1133,38 +1432,51 @@
         // 使用・納入・発注モーダル
         // ========================================
         function openOperationModal(type, productCode) {
-            const product = STATE.products.find(p => p.code === productCode);
-            if (!type || !product) return;
+            // 最新のマスターをリロード（新規登録直後など）
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+            
+            const product = STATE.products.find(p => p && p.code && (p.code.toString().trim() === productCode.toString().trim()));
+            if (!type) return;
+            if (!product) {
+                alert('商品が見つかりません。マスターで商品を確認してください。\nコード: ' + productCode + '\n登録済み商品数: ' + STATE.products.length);
+                return;
+            }
 
             if (type === 'use') {
                 document.getElementById('operationModal').classList.add('show');
-                document.body.classList.add('modal-open');
+                lockBodyScroll();
                 document.getElementById('operationTitle').textContent = '使用';
-                document.getElementById('opProductCode').value = product.code;
-                document.getElementById('opProductName').value = product.name;
-                document.getElementById('opCurrentStock').value = product.currentStock;
+                document.getElementById('opProductCode').value = product.code || '';
+                document.getElementById('opProductName').value = product.name || '';
+                document.getElementById('opCurrentStock').value = (product.currentStock !== undefined) ? product.currentStock : '';
                 document.getElementById('opQuantity').value = '1';
                 document.getElementById('opReason').value = '';
                 document.getElementById('opDetailReason').value = '';
                 document.getElementById('detailReasonSection').style.display = 'none';
             } else if (type === 'receive') {
                 document.getElementById('receiveModal').classList.add('show');
-                document.body.classList.add('modal-open');
-                document.getElementById('rcProductCode').value = product.code;
-                document.getElementById('rcProductName').value = product.name;
-                document.getElementById('rcCurrentStock').value = product.currentStock;
+                lockBodyScroll();
+                document.getElementById('rcProductCode').value = product.code || '';
+                document.getElementById('rcProductName').value = product.name || '';
+                document.getElementById('rcCurrentStock').value = (product.currentStock !== undefined) ? product.currentStock : '';
                 document.getElementById('rcQuantity').value = '1';
             }
         }
 
         function openOrderModal(productCode) {
-            const product = STATE.products.find(p => p.code === productCode);
-            if (!product) return;
+            // 最新のマスターをリロード
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+            
+            const product = STATE.products.find(p => p && p.code && (p.code.toString().trim() === productCode.toString().trim()));
+            if (!product) {
+                alert('商品が見つかりません。マスターで商品を確認してください。\nコード: ' + productCode + '\n登録済み商品数: ' + STATE.products.length);
+                return;
+            }
 
             document.getElementById('orderModal').classList.add('show');
-            document.body.classList.add('modal-open');
-            document.getElementById('ordProductCode').value = product.code;
-            document.getElementById('ordProductName').value = product.name;
+            lockBodyScroll();
+            document.getElementById('ordProductCode').value = product.code || '';
+            document.getElementById('ordProductName').value = product.name || '';
             document.getElementById('ordQuantity').value = '1';
             document.getElementById('ordExpectedDate').value = '';
             document.getElementById('ordNote').value = '';
@@ -1175,9 +1487,16 @@
             const quantity = parseInt(document.getElementById('opQuantity').value) || 0;
             const reason = document.getElementById('opReason').value;
             const detailReason = document.getElementById('opDetailReason').value;
+            const otherComment = document.getElementById('opOtherComment').value;
 
             if (!code || quantity <= 0 || !reason) {
                 alert('必須項目を入力してください');
+
+                            // その他の場合はコメント必須
+                            if (reason === 'other' && !otherComment.trim()) {
+                                alert('コメントを入力してください');
+                                return;
+                            }
                 return;
             }
 
@@ -1196,7 +1515,7 @@
                 quantity: quantity,
                 afterStock: newStock,
                 reason: reason,
-                detailReason: reason === 'unexpected' ? detailReason : null
+                detailReason: reason === 'unexpected' ? detailReason : (reason === 'other' ? otherComment : null)
             });
 
             saveToStorage(STORAGE_KEYS.PRODUCTS, STATE.products);
@@ -1245,8 +1564,25 @@
         function saveOrderRequest() {
             const code = document.getElementById('ordProductCode').value;
             const quantity = parseInt(document.getElementById('ordQuantity').value) || 0;
-            const expectedDate = document.getElementById('ordExpectedDate').value;
+            const expectedDateRaw = (document.getElementById('ordExpectedDate').value || '').trim();
             const note = document.getElementById('ordNote').value;
+
+            // 納入予定日が入力されている場合は YYYY-MM-DD 形式かつ実在する日付かを検証
+            if (expectedDateRaw) {
+                const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (!isoRegex.test(expectedDateRaw)) {
+                    alert('納入予定日は YYYY-MM-DD の形式で入力してください');
+                    document.getElementById('ordExpectedDate').focus();
+                    return;
+                }
+                const dt = new Date(expectedDateRaw);
+                if (isNaN(dt.getTime())) {
+                    alert('納入予定日に正しい日付を入力してください');
+                    document.getElementById('ordExpectedDate').focus();
+                    return;
+                }
+            }
+            const expectedDate = expectedDateRaw || '';
 
             if (!code || quantity <= 0) {
                 alert('必須項目を入力してください');
@@ -1370,7 +1706,7 @@
             });
 
             document.getElementById('editHistoryModal').classList.add('show');
-            document.body.classList.add('modal-open');
+            lockBodyScroll();
             document.getElementById('ehDateTime').value = dateStr;
             document.getElementById('ehProductName').value = item.productName;
             document.getElementById('ehQuantity').value = item.quantity;
@@ -1437,6 +1773,9 @@
         // 商品管理・棚卸画面
         // ========================================
         function renderMasterList(searchTerm = '') {
+            // 常に最新データから開始
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+            
             const listContainer = document.getElementById('masterList');
             const searchLower = searchTerm.toLowerCase();
 
@@ -1459,6 +1798,8 @@
                         month: '2-digit',
                         day: '2-digit'
                     }) : '-';
+                
+                const categoryBadge = product.category ? `<span class="category-badge" style="background: ${getCategoryColor(product.category)}; color: white; padding: 3px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-left: 4px;">${escapeHtml(product.category)}</span>` : '';
 
                 return `
                     <div class="list-item" style="border-bottom: 1px solid #e0e0e0;">
@@ -1469,7 +1810,7 @@
                         <div class="list-item-text">コード: ${escapeHtml(product.code)}</div>
                         <div class="list-item-text">メーカー: ${escapeHtml(product.maker || '-')}</div>
                         <div class="list-item-text">型式: ${escapeHtml(product.model || '-')}</div>
-                        <div class="list-item-text">カテゴリー: ${escapeHtml(product.category || '-')}</div>
+                        <div class="list-item-text">カテゴリー: ${categoryBadge}</div>
                         <div class="list-item-text">在庫: ${product.currentStock} / 最低: ${product.minStock}</div>
                         <div class="list-item-text">交換周期: ${product.cycleDays || '-'} 日</div>
                         <div class="list-item-text">最終棚卸: ${lastStocktakeDate}</div>
@@ -1479,44 +1820,101 @@
         }
 
         function openProductModal(productCode = null) {
-            document.getElementById('productModal').classList.add('show');
-            document.body.classList.add('modal-open');
+            // 最新のマスターデータをリロード
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+            
+            // === デバッグ情報を alert で表示 ===
+            if (productCode) {
+                alert('【デバッグ情報】\n' +
+                    'productCode: ' + productCode + '\n' +
+                    'STATE.products.length: ' + STATE.products.length + '\n' +
+                    'STATE.products: ' + JSON.stringify(STATE.products.slice(0, 2)) + '\n' +
+                    'STORAGE_AVAILABLE: ' + STORAGE_AVAILABLE + '\n' +
+                    'STORAGE_CACHE keys: ' + Object.keys(STORAGE_CACHE).join(', '));
+            }
+            
+            const modal = document.getElementById('productModal');
+            if (!modal) {
+                alert('ERROR: productModal element not found');
+                return;
+            }
+            
+            // フォーム要素を取得して存在確認
+            const fields = {
+                prodCode: document.getElementById('prodCode'),
+                prodName: document.getElementById('prodName'),
+                prodMaker: document.getElementById('prodMaker'),
+                prodModel: document.getElementById('prodModel'),
+                prodCategory: document.getElementById('prodCategory'),
+                prodMinStock: document.getElementById('prodMinStock'),
+                prodCurrentStock: document.getElementById('prodCurrentStock'),
+                prodPrice: document.getElementById('prodPrice'),
+                prodLeadTime: document.getElementById('prodLeadTime'),
+                prodCycleDays: document.getElementById('prodCycleDays'),
+                prodNote: document.getElementById('prodNote'),
+                prodConfirmBtn: document.getElementById('prodConfirmBtn'),
+                productModalTitle: document.getElementById('productModalTitle')
+            };
+            
+            // 要素が見つからない場合はアラート
+            const missingFields = Object.entries(fields).filter(([_, el]) => !el).map(([name]) => name);
+            if (missingFields.length > 0) {
+                alert('ERROR: 要素が見つかりません: ' + missingFields.join(', '));
+                return;
+            }
+            
+            // モーダル表示
+            modal.classList.add('show');
+            lockBodyScroll();
 
             if (productCode) {
-                const product = STATE.products.find(p => p.code === productCode);
+                // 商品検索（少し厳格にチェック）
+                const product = STATE.products.find(p => {
+                    return p && p.code && (p.code.toString().trim() === productCode.toString().trim());
+                });
+                
                 if (product) {
-                    document.getElementById('productModalTitle').textContent = '商品編集';
-                    document.getElementById('prodCode').value = product.code;
-                    document.getElementById('prodCode').readOnly = true;
-                    document.getElementById('prodCode').style.background = '#f5f5f5';
-                    document.getElementById('prodName').value = product.name;
-                    document.getElementById('prodMaker').value = product.maker || '';
-                    document.getElementById('prodModel').value = product.model || '';
-                    document.getElementById('prodCategory').value = product.category || '';
-                    document.getElementById('prodMinStock').value = product.minStock;
-                    document.getElementById('prodCurrentStock').value = product.currentStock;
-                    document.getElementById('prodPrice').value = product.price || '';
-                    document.getElementById('prodLeadTime').value = product.leadTime || '';
-                    document.getElementById('prodCycleDays').value = product.cycleDays || '';
-                    document.getElementById('prodNote').value = product.note || '';
-                    document.getElementById('prodConfirmBtn').dataset.editCode = productCode;
+                    alert('【商品検索成功】\n商品: ' + product.name + '\nコード: ' + product.code);
+                    
+                    fields.productModalTitle.textContent = '商品編集';
+                    fields.prodCode.value = product.code || '';
+                    fields.prodCode.readOnly = false;
+                    fields.prodCode.style.background = 'white';
+                    fields.prodName.value = product.name || '';
+                    fields.prodMaker.value = product.maker || '';
+                    fields.prodModel.value = product.model || '';
+                    fields.prodCategory.value = product.category || '';
+                    fields.prodMinStock.value = product.minStock || 1;
+                    fields.prodCurrentStock.value = product.currentStock || 0;
+                    fields.prodPrice.value = product.price || '';
+                    fields.prodLeadTime.value = product.leadTime || '';
+                    fields.prodCycleDays.value = product.cycleDays || '';
+                    fields.prodNote.value = product.note || '';
+                    fields.prodConfirmBtn.dataset.editCode = productCode;
+                } else {
+                    // デバッグ情報を表示
+                    const debugMsg = '【商品検索失敗】\nコード: ' + productCode + '\n登録済み商品数: ' + STATE.products.length + '\n' +
+                        (STATE.products.length > 0 ? '登録済みコード:\n' + STATE.products.map(p => '- ' + p.code).join('\n') : '(登録済み商品なし)');
+                    alert(debugMsg);
+                    modal.classList.remove('show');
+                    unlockBodyScroll();
                 }
             } else {
-                document.getElementById('productModalTitle').textContent = '新規商品登録';
-                document.getElementById('prodCode').value = '';
-                document.getElementById('prodCode').readOnly = false;
-                document.getElementById('prodCode').style.background = 'white';
-                document.getElementById('prodName').value = '';
-                document.getElementById('prodMaker').value = '';
-                document.getElementById('prodModel').value = '';
-                document.getElementById('prodCategory').value = '';
-                document.getElementById('prodMinStock').value = '1';
-                document.getElementById('prodCurrentStock').value = '0';
-                document.getElementById('prodPrice').value = '';
-                document.getElementById('prodLeadTime').value = '';
-                document.getElementById('prodCycleDays').value = '';
-                document.getElementById('prodNote').value = '';
-                document.getElementById('prodConfirmBtn').dataset.editCode = '';
+                fields.productModalTitle.textContent = '新規商品登録';
+                fields.prodCode.value = '';
+                fields.prodCode.readOnly = false;
+                fields.prodCode.style.background = 'white';
+                fields.prodName.value = '';
+                fields.prodMaker.value = '';
+                fields.prodModel.value = '';
+                fields.prodCategory.value = '';
+                fields.prodMinStock.value = '1';
+                fields.prodCurrentStock.value = '0';
+                fields.prodPrice.value = '';
+                fields.prodLeadTime.value = '';
+                fields.prodCycleDays.value = '';
+                fields.prodNote.value = '';
+                fields.prodConfirmBtn.dataset.editCode = '';
             }
         }
 
@@ -1582,6 +1980,29 @@
                 // 編集
                 const product = STATE.products.find(p => p.code === editCode);
                 if (product) {
+                    // 商品コードが変更される可能性があるため事前チェック
+                    if (code !== editCode) {
+                        // 新コードが既存の他商品に使われていないか確認
+                        const dup = STATE.products.find(p => p.code === code && !p.deleted);
+                        if (dup) {
+                            alert('入力された商品コードは既に使用されています。別のコードを指定してください。');
+                            return;
+                        }
+                        // 参照更新（履歴・発注・棚卸結果）
+                        STATE.history.forEach(h => {
+                            if (h.productCode === editCode) h.productCode = code;
+                        });
+                        STATE.orders.forEach(o => {
+                            if (o.productCode === editCode) o.productCode = code;
+                        });
+                        if (Array.isArray(STATE.stocktakeResults)) {
+                            STATE.stocktakeResults.forEach(r => {
+                                if (r.code === editCode) r.code = code;
+                            });
+                        }
+                        product.code = code;
+                    }
+
                     product.name = name;
                     product.maker = maker;
                     product.model = model;
@@ -1614,14 +2035,32 @@
         }
 
         function startStocktake() {
+            // 最新のマスターをストレージから再読み込みしてから開始
+            STATE.products = loadFromStorage(STORAGE_KEYS.PRODUCTS, []);
+
             if (STATE.products.filter(p => !p.deleted).length === 0) {
                 alert('登録済み商品がありません');
                 return;
             }
 
+            // 既に途中の進捗があれば復元して再開（途中保存あり）
+            const saved = loadFromStorage(STORAGE_KEYS.STOCKTAKE_PROGRESS, null);
+            const products = STATE.products.filter(p => !p.deleted);
+
             STATE.stocktakeMode = true;
-            STATE.stocktakeIndex = 0;
-            STATE.stocktakeResults = [];
+            if (saved && typeof saved.index === 'number' && Array.isArray(saved.results)) {
+                // インデックスが商品数を超えていれば初期化
+                if (saved.index >= products.length) {
+                    STATE.stocktakeIndex = 0;
+                    STATE.stocktakeResults = [];
+                } else {
+                    STATE.stocktakeIndex = saved.index;
+                    STATE.stocktakeResults = saved.results;
+                }
+            } else {
+                STATE.stocktakeIndex = 0;
+                STATE.stocktakeResults = [];
+            }
 
             showNextStocktakeItem();
         }
@@ -1629,21 +2068,132 @@
         function showNextStocktakeItem() {
             const products = STATE.products.filter(p => !p.deleted);
 
+            if (!products || products.length === 0) {
+                alert('登録済み商品がありません');
+                STATE.stocktakeMode = false;
+                return;
+            }
+
+            // インデックスが範囲外なら完了扱い
             if (STATE.stocktakeIndex >= products.length) {
-                // 棚卸完了
                 completeStocktake();
                 return;
             }
 
-            const product = products[STATE.stocktakeIndex];
+            let product = products[STATE.stocktakeIndex];
+            if (!product) {
+                // フォールバック: インデックスが不正でも先頭を表示して続行
+                product = products[0];
+                STATE.stocktakeIndex = 0;
+            }
 
-            document.getElementById('stocktakeModal').classList.add('show');
-            document.body.classList.add('modal-open');
-            document.getElementById('stProductCode').value = product.code;
-            document.getElementById('stProductName').value = product.name;
-            document.getElementById('stSystemStock').value = product.currentStock;
-            document.getElementById('stActualStock').value = '';
-            document.getElementById('stActualStock').focus();
+            // 表示
+            const modal = document.getElementById('stocktakeModal');
+            modal.classList.add('show');
+            lockBodyScroll();
+
+            // 表示（値がなければ "-" を入れて空に見えないようにする）
+            document.getElementById('stProductCode').value = product.code || '-';
+            document.getElementById('stProductName').value = product.name || '-';
+            document.getElementById('stSystemStock').value = (typeof product.currentStock !== 'undefined') ? product.currentStock : '-';
+
+            // 前回入力があれば復元（STATE 側の進捗を優先）
+            let restoredValue = '';
+            if (Array.isArray(STATE.stocktakeResults)) {
+                const found = STATE.stocktakeResults.find(r => r.code === product.code);
+                if (found && typeof found.actualStock === 'number') restoredValue = String(found.actualStock);
+            }
+            if (!restoredValue) {
+                const prev = loadFromStorage(STORAGE_KEYS.STOCKTAKE_PROGRESS, null);
+                if (prev && Array.isArray(prev.results)) {
+                    const found2 = prev.results.find(r => r.code === product.code);
+                    if (found2 && typeof found2.actualStock === 'number') restoredValue = String(found2.actualStock);
+                }
+            }
+
+            const stInput = document.getElementById('stActualStock');
+            stInput.value = restoredValue;
+            // フォーカスを少し遅延して付与（モバイルでキーボードが開かない問題対策）
+            setTimeout(() => {
+                try {
+                    stInput.focus();
+                    stInput.click && stInput.click();
+                } catch (e) {}
+            }, 80);
+        }
+
+        function saveStocktakeProgress() {
+            try {
+                const progress = {
+                    index: STATE.stocktakeIndex,
+                    results: STATE.stocktakeResults
+                };
+                saveToStorage(STORAGE_KEYS.STOCKTAKE_PROGRESS, progress);
+            } catch (e) {
+                console.error('進捗の保存に失敗しました', e);
+            }
+        }
+
+        function resetStocktakeProgress() {
+            try {
+                STATE.stocktakeMode = false;
+                STATE.stocktakeIndex = 0;
+                STATE.stocktakeResults = [];
+                try { localStorage.removeItem(STORAGE_KEYS.STOCKTAKE_PROGRESS); } catch (e) {}
+                // 閉じている場合は何もしない、開いていれば閉じる
+                const modal = document.getElementById('stocktakeModal');
+                if (modal && modal.classList.contains('show')) {
+                    closeModal('stocktakeModal');
+                }
+                alert('棚卸の途中保存をリセットしました');
+            } catch (e) {
+                console.error('リセットに失敗しました', e);
+                alert('リセットに失敗しました');
+            }
+        }
+
+        function resetAllData() {
+            try {
+                // ストレージキーを全消去
+                try { localStorage.removeItem(STORAGE_KEYS.PRODUCTS); } catch (e) {}
+                try { localStorage.removeItem(STORAGE_KEYS.HISTORY); } catch (e) {}
+                try { localStorage.removeItem(STORAGE_KEYS.ORDERS); } catch (e) {}
+                try { localStorage.removeItem(STORAGE_KEYS.CATEGORIES); } catch (e) {}
+                try { localStorage.removeItem(STORAGE_KEYS.MAKERS); } catch (e) {}
+                try { localStorage.removeItem(STORAGE_KEYS.STOCKTAKE_PROGRESS); } catch (e) {}
+
+                // STATE の初期化
+                STATE.products = [];
+                STATE.history = [];
+                STATE.orders = [];
+                STATE.categories = [];
+                STATE.makers = [];
+                STATE.stocktakeMode = false;
+                STATE.stocktakeIndex = 0;
+                STATE.stocktakeResults = [];
+
+                // すべてのモーダルを閉じる
+                document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+                unlockBodyScroll();
+
+                // 画面更新
+                renderMasterList();
+                renderInventoryList();
+                renderCategoryFilter();
+                renderHistoryList();
+
+                alert('全データを初期化しました');
+            } catch (e) {
+                console.error('初期化に失敗しました', e);
+                alert('初期化に失敗しました');
+            }
+        }
+
+        function skipStocktakeItem() {
+            // スキップは記録せず次へ進む
+            STATE.stocktakeIndex++;
+            saveStocktakeProgress();
+            showNextStocktakeItem();
         }
 
         function saveStocktakeItem() {
@@ -1651,8 +2201,8 @@
             const actualStock = document.getElementById('stActualStock').value;
 
             if (actualStock === '') {
-                STATE.stocktakeIndex++;
-                showNextStocktakeItem();
+                alert('実在庫数を入力してください。スキップする場合は「スキップ」を押してください。');
+                document.getElementById('stActualStock').focus();
                 return;
             }
 
@@ -1673,6 +2223,8 @@
             }
 
             STATE.stocktakeIndex++;
+            // 途中結果を保存
+            saveStocktakeProgress();
             showNextStocktakeItem();
         }
 
@@ -1708,6 +2260,9 @@
             saveToStorage(STORAGE_KEYS.PRODUCTS, STATE.products);
             saveToStorage(STORAGE_KEYS.HISTORY, STATE.history);
 
+            // 完了したら進捗を削除
+            try { localStorage.removeItem(STORAGE_KEYS.STOCKTAKE_PROGRESS); } catch (e) {}
+
             closeModal('stocktakeModal');
             renderMasterList();
             renderInventoryList();
@@ -1720,7 +2275,115 @@
         // 交換周期カレンダー
         // ========================================
         function renderCalendarScreen() {
+            renderMonthCalendar();
             renderScheduleList();
+        }
+
+        function renderMonthCalendar() {
+            const container = document.getElementById('calendarContainer');
+            const today = new Date();
+            const year = STATE.calendarYear;
+            const month = STATE.calendarMonth;
+
+            // 月表示を更新
+            const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            document.getElementById('monthDisplay').textContent = `${year}年 ${monthNames[month]}`;
+
+            // 交換予定リストを計算
+            const products = STATE.products.filter(p => !p.deleted && p.cycleDays);
+            const scheduleMap = {};
+
+            products.forEach(product => {
+                const scheduleDate = calculateNextScheduleDate(product);
+                if (scheduleDate) {
+                    if (!scheduleMap[scheduleDate]) {
+                        scheduleMap[scheduleDate] = [];
+                    }
+                    scheduleMap[scheduleDate].push(product);
+                }
+            });
+
+            // 月の最初の日と最後の日
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const prevLastDay = new Date(year, month, 0);
+
+            // カレンダーテーブル
+            let html = `
+                <div style="margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+            `;
+
+            // 曜日ヘッダー
+            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+            dayNames.forEach(day => {
+                html += `<div style="text-align: center; padding: 8px; font-weight: 600; font-size: 12px; color: ${day === '日' || day === '土' ? '#d32f2f' : '#333'};">${day}</div>`;
+            });
+
+            // 前月の日付
+            for (let i = firstDay.getDay() - 1; i >= 0; i--) {
+                const day = prevLastDay.getDate() - i;
+                html += `<div style="padding: 8px; text-align: center; font-size: 12px; color: #ccc; background: #f9f9f9;">${day}</div>`;
+            }
+
+            // 当月の日付
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const hasSchedule = scheduleMap[dateStr] && scheduleMap[dateStr].length > 0;
+                const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+                const dayOfWeek = new Date(year, month, day).getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                let bgColor = 'white';
+                let textColor = '#333';
+                let borderStyle = '1px solid #e0e0e0';
+
+                if (isToday) {
+                    bgColor = '#1a73e8';
+                    textColor = 'white';
+                    borderStyle = '2px solid #1a73e8';
+                } else if (hasSchedule) {
+                    bgColor = '#fff3e0';
+                    borderStyle = '2px solid #f57f17';
+                } else if (isWeekend) {
+                    textColor = '#d32f2f';
+                }
+
+                html += `
+                    <div onclick="selectCalendarDate('${dateStr}')" style="
+                        padding: 8px 4px;
+                        text-align: center;
+                        font-size: 12px;
+                        color: ${textColor};
+                        background: ${bgColor};
+                        border: ${borderStyle};
+                        border-radius: 4px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${bgColor}'">
+                        <div style="font-weight: 600;">${day}</div>
+                        ${hasSchedule ? `<div style="font-size: 10px; color: #f57f17; font-weight: 600; margin-top: 2px;">${scheduleMap[dateStr].length}件</div>` : ''}
+                    </div>
+                `;
+            }
+
+            // 次月の日付
+            const remainingDays = 42 - (firstDay.getDay() + lastDay.getDate());
+            for (let day = 1; day <= remainingDays; day++) {
+                html += `<div style="padding: 8px; text-align: center; font-size: 12px; color: #ccc; background: #f9f9f9;">${day}</div>`;
+            }
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        function selectCalendarDate(dateStr) {
+            renderScheduleList(dateStr);
+            // 選択日付をカレンダーに表示
+            const allDays = document.querySelectorAll('#calendarContainer div[style*="cursor: pointer"]');
+            allDays.forEach(day => {
+                day.style.borderColor = day.textContent.includes('') ? '#f57f17' : '#e0e0e0';
+            });
         }
 
         function calculateNextScheduleDate(product) {
@@ -1759,16 +2422,24 @@
 
             if (filterDate) {
                 schedules = schedules.filter(s => s.scheduleDate === filterDate);
+            } else {
+                // フィルター無しの場合は、過去30日から未来30日までの予定を表示
+                schedules = schedules.filter(s => s.daysUntil >= -30 && s.daysUntil <= 30);
             }
 
             schedules = schedules.sort((a, b) => a.daysUntil - b.daysUntil);
 
             if (schedules.length === 0) {
-                container.innerHTML = '<div class="list-empty">予定されている交換はありません</div>';
+                const message = filterDate ? '予定されている交換はありません' : '交換予定がありません';
+                container.innerHTML = `<div style="padding: 16px; text-align: center; color: #999; font-size: 13px;">${message}</div>`;
                 return;
             }
 
-            container.innerHTML = `<div style="padding: 12px 16px; font-weight: 600; color: #1a73e8;">交換予定</div>` +
+            const headerDate = filterDate ? 
+                new Date(filterDate).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', weekday: 'short' }) :
+                '交換予定（過去30日～未来30日）';
+
+            container.innerHTML = `<div style="padding: 12px 16px; font-weight: 600; color: #1a73e8; border-bottom: 1px solid #f0f0f0;">${headerDate}</div>` +
                 schedules.map(s => {
                     const date = new Date(s.scheduleDate);
                     const dateStr = date.toLocaleString('ja-JP', {
@@ -1776,18 +2447,28 @@
                         day: '2-digit'
                     });
 
-                    let statusColor = '#388e3c';
-                    if (s.daysUntil <= 0) statusColor = '#d32f2f';
-                    else if (s.daysUntil <= 3) statusColor = '#f57f17';
+                    let statusColor = '#9e9e9e';
+                    let statusText = s.daysUntil + '日後';
+                    if (s.daysUntil <= 0) {
+                        statusColor = '#d32f2f';
+                        statusText = '期限切れ';
+                    } else if (s.daysUntil <= 7) {
+                        statusColor = '#f57f17';
+                    } else if (s.daysUntil <= 30) {
+                        statusColor = '#388e3c';
+                    }
+
+                    const categoryBadge = s.product.category ? 
+                        `<span style="background: ${getCategoryColor(s.product.category)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-left: 4px;">${escapeHtml(s.product.category)}</span>` :
+                        '';
 
                     return `
-                        <div class="list-item" style="border-bottom: 1px solid #e0e0e0;">
+                        <div class="list-item" style="border-bottom: 1px solid #f0f0f0; padding: 12px 16px;">
                             <div class="list-item-header">
-                                <div class="list-item-title">${escapeHtml(s.product.name)}</div>
-                                <span class="list-item-badge" style="background: ${statusColor}; color: white;">${dateStr}</span>
+                                <div style="font-weight: 600; font-size: 14px; color: #333;">${escapeHtml(s.product.name)}</div>
+                                <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap;">${statusText}</span>
                             </div>
-                            <div class="list-item-text">予定まで: <strong>${s.daysUntil > 0 ? s.daysUntil + '日' : '期限切れ'}</strong></div>
-                            <div class="list-item-text">交換周期: ${s.product.cycleDays} 日</div>
+                            <div class="list-item-text" style="margin-top: 4px; font-size: 12px;">交換予定: ${dateStr} / 周期: ${s.product.cycleDays}日 ${categoryBadge}</div>
                         </div>
                     `;
                 }).join('');
@@ -1972,10 +2653,27 @@
         // ========================================
         // モーダル制御
         // ========================================
+        function lockBodyScroll() {
+            // スクロールバー幅を計算して body にパディングを追加し、表示ズレを防ぐ
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = `${scrollbarWidth}px`;
+            }
+            lockBodyScroll();
+        }
+
+        function unlockBodyScroll() {
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+        }
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
+            // 棚卸モーダルを閉じるときは進捗を保存して一時停止状態にする
+            if (modalId === 'stocktakeModal' && STATE.stocktakeMode) {
+                saveStocktakeProgress();
+            }
             modal.classList.remove('show');
-            document.body.classList.remove('modal-open');
+            unlockBodyScroll();
         }
 
         function renderCurrentScreen() {
